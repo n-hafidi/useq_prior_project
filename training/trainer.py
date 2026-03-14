@@ -11,7 +11,8 @@ class Trainer:
         self.cfg = cfg
         self.loss_curve = []
 
-    def train(self, z, corrupted, mask):
+    #def train(self, z, corrupted, mask):
+    def train(self, z, corrupted, mask, clean):
 
         iters = self.cfg["training"]["iterations"]
 
@@ -24,9 +25,18 @@ class Trainer:
 
             pred = self.model(z + noise, mask)
 
+            #loss = total_loss(
+            #    pred,
+            #    corrupted,
+            #    mask,
+            #    i,
+            #    iters,
+            #    self.cfg
+            #)
+            
             loss = total_loss(
                 pred,
-                corrupted,
+                clean,
                 mask,
                 i,
                 iters,

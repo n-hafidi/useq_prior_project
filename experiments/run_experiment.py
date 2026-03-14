@@ -65,7 +65,8 @@ z=torch.randn(1,8,*clean.shape[2:],device=device)
 
 trainer=Trainer(model,opt,cfg)
 
-pred=trainer.train(z,corrupted,mask)
+#pred=trainer.train(z,corrupted,mask)
+pred = trainer.train(z, corrupted, mask, clean)
 
 restored=corrupted*mask+pred*(1-mask)
 
