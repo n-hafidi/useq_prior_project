@@ -60,7 +60,8 @@ model = USeqPriorV2(
 
 opt=optim.Adam(model.parameters(),lr=cfg["training"]["lr"])
 
-z=torch.randn_like(clean).to(device)
+#z=torch.randn_like(clean).to(device)
+z=torch.randn(1,8,*clean.shape[2:],device=device)
 
 trainer=Trainer(model,opt,cfg)
 
