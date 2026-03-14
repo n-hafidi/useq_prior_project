@@ -12,10 +12,12 @@ def tv_loss(x):
 def total_loss(pred, corrupted, mask, iteration, max_iter, cfg):
 
     # reconstruction (masked L1)
-    rec_loss = torch.mean(torch.abs((pred - corrupted) * mask))
+    #rec_loss = torch.mean(torch.abs((pred - corrupted) * mask))
+    rec_loss = torch.mean(torch.abs((pred - corrupted) * (1 - mask)))
 
     # dynamic TV regularization
-    tv_lambda = cfg["training"]["tv_lambda"]
+    #tv_lambda = cfg["training"]["tv_lambda"]
+    tv_lambda = cfg["loss"]["lambda_tv"]
 
     decay = 1 - iteration / max_iter
 

@@ -51,7 +51,12 @@ mask=mask.to(device)
 corrupted=clean*mask
 
 
-model=USeqPriorV2().to(device)
+#model=USeqPriorV2().to(device)
+model = USeqPriorV2(
+    embed_dim=cfg["model"]["embed_dim"],
+    heads=cfg["model"]["heads"],
+    layers=cfg["model"]["transformer_layers"]
+).to(device)
 
 opt=optim.Adam(model.parameters(),lr=cfg["training"]["lr"])
 
