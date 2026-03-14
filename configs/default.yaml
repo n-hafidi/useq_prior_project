@@ -1,0 +1,22 @@
+experiment:
+  image: cameraman
+  size: 256
+
+corruption:
+  type: text
+  num_lines: 3
+  thickness: 10
+  missing_rate: 0.3
+  hole_size: 64
+
+training:
+  iterations: 2000
+  lr: 0.001
+
+model:
+  embed_dim: 256
+  transformer_layers: 4
+  heads: 8
+
+loss:
+  lambda_tv: 0.0001
