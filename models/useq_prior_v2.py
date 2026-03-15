@@ -59,9 +59,11 @@ class USeqPriorV2(nn.Module):
 
         b, c, h, w = d2.shape
 
-        seq = d2.flatten(2).transpose(1, 2)
+        #seq = d2.flatten(2).transpose(1, 2)
+        seq = d2.flatten(2).permute(0, 2, 1)
 
-        seq = self.transformer(seq)
+        #seq = self.transformer(seq)
+        seq = seq.contiguous()
 
         x = seq.transpose(1, 2).view(b, c, h, w)
 

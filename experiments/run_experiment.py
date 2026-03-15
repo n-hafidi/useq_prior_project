@@ -54,6 +54,7 @@ args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.backends.cudnn.benchmark = True
+torch.set_float32_matmul_precision('high')
 print("Device:", device)
 
 
@@ -105,6 +106,8 @@ corrupted = clean * mask
 # =====================================================
 
 model = USeqPriorV2().to(device)
+
+model = torch.compile(model)
 
 
 cfg = {
@@ -250,5 +253,6 @@ plt.savefig(os.path.join(results_folder, "visualization.png"))
 
 plt.show()
 
-print("✔ Results saved as results.png")
+
+print("✔ Results saved in experiment folder")
 
