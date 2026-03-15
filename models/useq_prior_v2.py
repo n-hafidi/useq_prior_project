@@ -42,7 +42,7 @@ class USeqPriorV2(nn.Module):
         )
 
         # positional embedding
-        self.pos_embed = nn.Parameter(torch.randn(1,1024,embed_dim))
+        self.pos_embed = nn.Parameter(torch.randn(1,4096,embed_dim))
 
         self.up1 = nn.ConvTranspose2d(embed_dim,256,4,2,1)
 
