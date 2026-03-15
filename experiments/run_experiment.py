@@ -1,6 +1,8 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append("/content/useq_prior_project")
 
 import argparse
 import torch
@@ -10,8 +12,7 @@ from skimage import data, color, transform
 
 from models.useq_prior_v2 import USeqPriorV2
 from training.trainer import Trainer
-from utils.corruptions import random_mask, hole_mask, text_mask
-
+from data.corruptions import random_mask, hole_mask, text_mask
 
 # =====================================================
 # ARGUMENTS
@@ -108,7 +109,8 @@ cfg = {
 }
 
 
-trainer = Trainer(model, args.lr, cfg)
+optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+trainer = Trainer(model, optimizer, cfg)
 
 
 # =====================================================
