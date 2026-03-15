@@ -14,6 +14,9 @@ from models.useq_prior_v2 import USeqPriorV2
 from training.trainer import Trainer
 from data.corruptions import random_mask, hole_mask, text_mask
 
+import matplotlib.pyplot as plt
+
+
 # =====================================================
 # ARGUMENTS
 # =====================================================
@@ -109,8 +112,7 @@ cfg = {
 }
 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-trainer = Trainer(model, optimizer, cfg)
+trainer = Trainer(model, args.lr, cfg)
 
 
 # =====================================================
@@ -178,3 +180,10 @@ plt.savefig("results.png")
 plt.show()
 
 print("✔ Results saved as results.png")
+
+
+img = plt.imread("results.png")
+plt.figure(figsize=(10,4))
+plt.imshow(img)
+plt.axis("off")
+plt.show()
