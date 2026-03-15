@@ -17,6 +17,9 @@ from data.corruptions import random_mask, hole_mask, text_mask
 
 import matplotlib.pyplot as plt
 
+from utils.metrics import compute_psnr, compute_ssim
+from utils.save_results import save_results
+
 
 # =====================================================
 # ARGUMENTS
@@ -124,6 +127,7 @@ trainer = Trainer(model, args.lr, cfg)
 z = torch.randn_like(clean)
 
 loss_curve = []
+psnr_curve = []
 
 for i in range(args.iters):
 
@@ -131,8 +135,41 @@ for i in range(args.iters):
 
     loss_curve.append(loss)
 
+    # PSNR during training
+    with torch.no_grad():
+
+        current_psnr = compute_psnr(
+            clean.detach().cpu().numpy().squeeze(),
+            pred.detach().cpu().numpy().squeeze()
+        )
+
+    psnr_curve.append(current_psnr)
+
     if i % 50 == 0:
-        print(f"Iter {i}/{args.iters} Loss: {loss:.6f}")
+        print(f"Iter {i}/{args.iters} Loss: {loss:.6f} PSNR: {current_psnr:.2f}")
+
+
+# =====================================================
+# EXPERIMENT FOLDER
+# =====================================================
+
+if args.corruption == "text":
+    exp_name = f"{args.image}_text_lines{args.num_lines}_th{args.thickness}_{args.size}_{args.iters}"
+
+elif args.corruption == "random":
+    exp_name = f"{args.image}_random_rate{args.missing_rate}_{args.size}_{args.iters}"
+
+elif args.corruption == "hole":
+    exp_name = f"{args.image}_hole_size{args.hole_size}_{args.size}_{args.iters}"
+
+else:
+    exp_name = f"{args.image}_unknown"
+
+results_folder = os.path.join("results", exp_name)
+
+os.makedirs(results_folder, exist_ok=True)
+
+print("Results folder:", results_folder)
 
 
 # =====================================================
@@ -144,6 +181,32 @@ clean = clean.cpu().squeeze()
 corrupted = corrupted.cpu().squeeze()
 mask = mask.cpu().squeeze()
 
+# =====================================================
+# METRICS
+# =====================================================
+
+psnr = compute_psnr(clean.numpy(), restored.numpy())
+ssim = compute_ssim(clean.numpy(), restored.numpy())
+
+print(f"\nPSNR: {psnr:.3f}")
+print(f"SSIM: {ssim:.3f}")
+
+
+# =====================================================
+# SAVE RESULTS
+# =====================================================
+
+save_results(
+    results_folder,
+    clean.numpy(),
+    corrupted.numpy(),
+    mask.numpy(),
+    restored.numpy(),
+    loss_curve,
+    psnr_curve,
+    psnr,
+    ssim
+)
 
 # =====================================================
 # DISPLAY
@@ -171,21 +234,21 @@ plt.imshow(restored, cmap="gray")
 plt.title("Restored")
 plt.axis("off")
 
+#plt.subplot(1,5,5)
+#plt.plot(loss_curve)
+#plt.title("Loss")
+
 plt.subplot(1,5,5)
-plt.plot(loss_curve)
-plt.title("Loss")
+plt.plot(psnr_curve)
+plt.title("PSNR")
+
 
 plt.tight_layout()
 
-plt.savefig("results.png")
+#plt.savefig("results.png")
+plt.savefig(os.path.join(results_folder, "visualization.png"))
 
 plt.show()
 
 print("✔ Results saved as results.png")
 
-
-img = plt.imread("results.png")
-plt.figure(figsize=(10,4))
-plt.imshow(img)
-plt.axis("off")
-plt.show()
