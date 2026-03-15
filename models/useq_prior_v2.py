@@ -25,7 +25,7 @@ class USeqPriorV2(nn.Module):
 
         super().__init__()
 
-        self.enc1 = ConvBlock(9, 64)
+        self.enc1 = ConvBlock(2, 64)
 
         self.down1 = nn.Conv2d(64, 128, 4, 2, 1)
 

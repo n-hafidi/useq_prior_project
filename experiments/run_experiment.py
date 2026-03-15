@@ -1,59 +1,178 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+import argparse
 import torch
-import yaml
-from skimage import data, transform
-import torch.optim as optim
+import matplotlib.pyplot as plt
+
+from skimage import data, color, transform
 
 from models.useq_prior_v2 import USeqPriorV2
-from data.corruptions import *
 from training.trainer import Trainer
-from visualization.plots import show_results
+from utils.corruptions import random_mask, hole_mask, text_mask
 
+
+# =====================================================
+# ARGUMENTS
+# =====================================================
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--image", type=str, default="camera",
+                    choices=["camera", "astronaut", "coins", "moon"])
+
+parser.add_argument("--size", type=int, default=256)
+
+parser.add_argument("--corruption", type=str, default="text",
+                    choices=["text", "random", "hole"])
+
+parser.add_argument("--num_lines", type=int, default=3)
+parser.add_argument("--thickness", type=int, default=10)
+parser.add_argument("--missing_rate", type=float, default=0.4)
+parser.add_argument("--hole_size", type=int, default=80)
+
+parser.add_argument("--iters", type=int, default=2000)
+parser.add_argument("--lr", type=float, default=0.001)
+
+parser.add_argument("--lambda_tv", type=float, default=0.1)
+
+args = parser.parse_args()
+
+
+# =====================================================
+# DEVICE
+# =====================================================
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
 
-with open("configs/default.yaml") as f:
-    cfg = yaml.safe_load(f)
 
-img = data.camera()
+# =====================================================
+# IMAGE
+# =====================================================
 
-img = transform.resize(img, (cfg["experiment"]["size"], cfg["experiment"]["size"]))
+images = {
+    "camera": data.camera(),
+    "astronaut": data.astronaut(),
+    "coins": data.coins(),
+    "moon": data.moon()
+}
 
-clean = torch.tensor(img).float().view(1,1,*img.shape).to(device)
+img = images[args.image]
 
-if cfg["corruption"]["type"] == "hole":
-    mask = hole_mask(clean, cfg["corruption"]["hole_size"])
+if img.ndim == 3:
+    img = color.rgb2gray(img)
 
-elif cfg["corruption"]["type"] == "random":
-    mask = random_mask(clean, cfg["corruption"]["missing_rate"])
+img = transform.resize(img, (args.size, args.size))
+
+clean = torch.tensor(img).float().unsqueeze(0).unsqueeze(0).to(device)
+
+
+# =====================================================
+# CORRUPTION
+# =====================================================
+
+if args.corruption == "hole":
+
+    mask = hole_mask(clean, args.hole_size)
+
+elif args.corruption == "random":
+
+    mask = random_mask(clean, args.missing_rate)
+
+elif args.corruption == "text":
+
+    mask = text_mask(clean, args.num_lines, args.thickness)
 
 else:
-    mask = text_mask(
-        clean,
-        cfg["corruption"]["num_lines"],
-        cfg["corruption"]["thickness"]
-    )
-
-mask = mask.to(device)
+    raise ValueError("Unknown corruption")
 
 corrupted = clean * mask
 
+
+# =====================================================
+# MODEL
+# =====================================================
+
 model = USeqPriorV2().to(device)
 
-opt = optim.Adam(model.parameters(), lr=cfg["training"]["lr"])
 
-z = torch.randn(1,8,*clean.shape[2:],device=device)
+cfg = {
+    "training": {
+        "iterations": args.iters
+    },
+    "loss": {
+        "lambda_tv": args.lambda_tv
+    }
+}
 
-trainer = Trainer(model, opt, cfg)
 
-pred = trainer.train(z, corrupted, mask)
+trainer = Trainer(model, args.lr, cfg)
 
-restored = corrupted + pred * (1 - mask)
 
-show_results(
-    clean.squeeze().cpu(),
-    corrupted.squeeze().cpu(),
-    mask.squeeze().cpu(),
-    restored.squeeze().cpu(),
-    trainer.loss_curve
-)
+# =====================================================
+# TRAIN
+# =====================================================
+
+z = torch.randn_like(clean)
+
+loss_curve = []
+
+for i in range(args.iters):
+
+    pred, loss = trainer.train(z, corrupted, mask, i)
+
+    loss_curve.append(loss)
+
+    if i % 50 == 0:
+        print(f"Iter {i}/{args.iters} Loss: {loss:.6f}")
+
+
+# =====================================================
+# RESULTS
+# =====================================================
+
+restored = pred.detach().cpu().squeeze()
+clean = clean.cpu().squeeze()
+corrupted = corrupted.cpu().squeeze()
+mask = mask.cpu().squeeze()
+
+
+# =====================================================
+# DISPLAY
+# =====================================================
+
+plt.figure(figsize=(18,4))
+
+plt.subplot(1,5,1)
+plt.imshow(clean, cmap="gray")
+plt.title("Original")
+plt.axis("off")
+
+plt.subplot(1,5,2)
+plt.imshow(corrupted, cmap="gray")
+plt.title("Corrupted")
+plt.axis("off")
+
+plt.subplot(1,5,3)
+plt.imshow(mask, cmap="gray")
+plt.title("Mask")
+plt.axis("off")
+
+plt.subplot(1,5,4)
+plt.imshow(restored, cmap="gray")
+plt.title("Restored")
+plt.axis("off")
+
+plt.subplot(1,5,5)
+plt.plot(loss_curve)
+plt.title("Loss")
+
+plt.tight_layout()
+
+plt.savefig("results.png")
+
+plt.show()
+
+print("✔ Results saved as results.png")
