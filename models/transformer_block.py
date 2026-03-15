@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class BidirectionalTransformer(nn.Module):
 
     def __init__(self, dim, heads, layers):
@@ -10,8 +11,7 @@ class BidirectionalTransformer(nn.Module):
         encoder = nn.TransformerEncoderLayer(
             d_model=dim,
             nhead=heads,
-            batch_first=True,
-            norm_first=True
+            batch_first=True
         )
 
         self.transformer = nn.TransformerEncoder(
@@ -21,14 +21,12 @@ class BidirectionalTransformer(nn.Module):
 
     def forward(self, seq):
 
-        rev = torch.flip(seq,[1])
+        # forward direction
+        fwd = self.transformer(seq)
 
-        combined = torch.cat([seq,rev],0)
+        # reverse direction
+        rev = torch.flip(seq, [1])
+        rev = self.transformer(rev)
+        rev = torch.flip(rev, [1])
 
-        out = self.transformer(combined)
-
-        fwd,rev = torch.chunk(out,2,0)
-
-        rev = torch.flip(rev,[1])
-
-        return (fwd + rev)/2
+        return (fwd + rev) / 2

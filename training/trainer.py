@@ -11,8 +11,7 @@ class Trainer:
         self.cfg = cfg
         self.loss_curve = []
 
-    #def train(self, z, corrupted, mask):
-    def train(self, z, corrupted, mask, clean):
+    def train(self, z, corrupted, mask):
 
         iters = self.cfg["training"]["iterations"]
 
@@ -20,23 +19,14 @@ class Trainer:
 
             self.opt.zero_grad()
 
-            sigma = 0.01 * (1 - i / iters)
+            sigma = 0.03 * (1 - i / iters)
             noise = torch.randn_like(z) * sigma
 
             pred = self.model(z + noise, mask)
 
-            #loss = total_loss(
-            #    pred,
-            #    corrupted,
-            #    mask,
-            #    i,
-            #    iters,
-            #    self.cfg
-            #)
-            
             loss = total_loss(
                 pred,
-                clean,
+                corrupted,
                 mask,
                 i,
                 iters,
@@ -44,6 +34,7 @@ class Trainer:
             )
 
             loss.backward()
+
             self.opt.step()
 
             self.loss_curve.append(loss.item())

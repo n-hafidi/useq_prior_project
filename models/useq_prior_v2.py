@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .transformer_block import BidirectionalTransformer
 
@@ -12,10 +11,8 @@ class ConvBlock(nn.Module):
         super().__init__()
 
         self.net = nn.Sequential(
-
             nn.Conv2d(in_c,out_c,3,padding=1),
             nn.LeakyReLU(0.2),
-
             nn.Conv2d(out_c,out_c,3,padding=1),
             nn.LeakyReLU(0.2)
         )
@@ -32,7 +29,6 @@ class USeqPriorV2(nn.Module):
 
         super().__init__()
 
-        #self.enc1 = ConvBlock(2,64)
         self.enc1 = ConvBlock(9,64)
 
         self.down1 = nn.Conv2d(64,128,4,2,1)
@@ -44,17 +40,16 @@ class USeqPriorV2(nn.Module):
         self.transformer = BidirectionalTransformer(
             embed_dim,heads,layers
         )
-        
-        self.pos_embed = nn.Parameter(torch.randn(1, 4096, embed_dim))
+
+        # positional embedding
+        self.pos_embed = nn.Parameter(torch.randn(1,1024,embed_dim))
 
         self.up1 = nn.ConvTranspose2d(embed_dim,256,4,2,1)
 
-        #self.dec1 = ConvBlock(256,128)
         self.dec1 = ConvBlock(512,128)
 
         self.up2 = nn.ConvTranspose2d(128,64,4,2,1)
 
-        #self.dec2 = ConvBlock(64,64)
         self.dec2 = ConvBlock(128,64)
 
         self.out = nn.Conv2d(64,1,3,1,1)
@@ -74,10 +69,6 @@ class USeqPriorV2(nn.Module):
 
         b,c,h,w = d2.shape
 
-        #seq = d2.flatten(2).transpose(1,2)
-
-        #seq = self.transformer(seq)
-        
         seq = d2.flatten(2).transpose(1,2)
 
         seq = seq + self.pos_embed[:, :seq.size(1), :]
@@ -86,26 +77,16 @@ class USeqPriorV2(nn.Module):
 
         x = seq.transpose(1,2).view(b,c,h,w)
 
-        #x = self.up1(x)
-
-        #x = self.dec1(x)
-        
         x = self.up1(x)
 
         x = torch.cat([x,e2],1)
 
         x = self.dec1(x)
 
-        #x = self.up2(x)
-
-        #x = self.dec2(x)
-        
         x = self.up2(x)
 
         x = torch.cat([x,e1],1)
 
         x = self.dec2(x)
 
-
-        #return torch.sigmoid(self.out(x))
         return torch.clamp(self.out(x),0,1)

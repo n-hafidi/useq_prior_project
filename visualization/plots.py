@@ -20,4 +20,8 @@ def show_results(original,corrupted,mask,restored,loss):
     ax[4].plot(loss)
     ax[4].set_title("Loss")
 
+    for a in ax:
+        a.axis("off")
+
+    plt.tight_layout()
     plt.show()

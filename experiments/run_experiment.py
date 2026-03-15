@@ -51,7 +51,6 @@ mask=mask.to(device)
 corrupted=clean*mask
 
 
-#model=USeqPriorV2().to(device)
 model = USeqPriorV2(
     embed_dim=cfg["model"]["embed_dim"],
     heads=cfg["model"]["heads"],
@@ -60,16 +59,13 @@ model = USeqPriorV2(
 
 opt=optim.Adam(model.parameters(),lr=cfg["training"]["lr"])
 
-#z=torch.randn_like(clean).to(device)
-z=torch.randn(1,8,*clean.shape[2:],device=device)
+z = torch.randn(1,8,*clean.shape[2:],device=device)
 
 trainer=Trainer(model,opt,cfg)
 
-#pred=trainer.train(z,corrupted,mask)
-pred = trainer.train(z, corrupted, mask, clean)
+pred=trainer.train(z,corrupted,mask)
 
-restored=corrupted*mask+pred*(1-mask)
-
+restored=corrupted + pred*(1-mask)
 
 show_results(
     clean.squeeze().cpu(),
