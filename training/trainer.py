@@ -20,6 +20,7 @@ class Trainer:
             self.opt.zero_grad()
 
             sigma = 0.03 * (1 - i / iters)
+
             noise = torch.randn_like(z) * sigma
 
             pred = self.model(z + noise, mask)

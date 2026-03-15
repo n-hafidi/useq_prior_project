@@ -11,7 +11,7 @@ def tv_loss(x):
 
 def total_loss(pred, corrupted, mask, iteration, max_iter, cfg):
 
-    rec_loss = torch.mean(torch.abs((pred - corrupted) * mask))
+    rec = torch.mean(torch.abs((pred - corrupted) * mask))
 
     tv_lambda = cfg["loss"]["lambda_tv"]
 
@@ -19,4 +19,4 @@ def total_loss(pred, corrupted, mask, iteration, max_iter, cfg):
 
     tv = tv_lambda * decay * tv_loss(pred)
 
-    return rec_loss + tv
+    return rec + tv

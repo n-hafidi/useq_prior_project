@@ -1,11 +1,6 @@
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
 import torch
 import yaml
-from skimage import data,transform
+from skimage import data, transform
 import torch.optim as optim
 
 from models.useq_prior_v2 import USeqPriorV2
@@ -17,55 +12,43 @@ from visualization.plots import show_results
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
 
-
 with open("configs/default.yaml") as f:
-    cfg=yaml.safe_load(f)
+    cfg = yaml.safe_load(f)
 
+img = data.camera()
 
-img=data.camera()
+img = transform.resize(img, (cfg["experiment"]["size"], cfg["experiment"]["size"]))
 
-img=transform.resize(img,(cfg["experiment"]["size"],cfg["experiment"]["size"]))
+clean = torch.tensor(img).float().view(1,1,*img.shape).to(device)
 
-clean=torch.tensor(img).float().view(1,1,*img.shape).to(device)
+if cfg["corruption"]["type"] == "hole":
+    mask = hole_mask(clean, cfg["corruption"]["hole_size"])
 
-
-if cfg["corruption"]["type"]=="hole":
-
-    mask=hole_mask(clean,cfg["corruption"]["hole_size"])
-
-elif cfg["corruption"]["type"]=="random":
-
-    mask=random_mask(clean,cfg["corruption"]["missing_rate"])
+elif cfg["corruption"]["type"] == "random":
+    mask = random_mask(clean, cfg["corruption"]["missing_rate"])
 
 else:
-
-    mask=text_mask(
+    mask = text_mask(
         clean,
         cfg["corruption"]["num_lines"],
         cfg["corruption"]["thickness"]
     )
 
+mask = mask.to(device)
 
-mask=mask.to(device)
+corrupted = clean * mask
 
-corrupted=clean*mask
+model = USeqPriorV2().to(device)
 
-
-model = USeqPriorV2(
-    embed_dim=cfg["model"]["embed_dim"],
-    heads=cfg["model"]["heads"],
-    layers=cfg["model"]["transformer_layers"]
-).to(device)
-
-opt=optim.Adam(model.parameters(),lr=cfg["training"]["lr"])
+opt = optim.Adam(model.parameters(), lr=cfg["training"]["lr"])
 
 z = torch.randn(1,8,*clean.shape[2:],device=device)
 
-trainer=Trainer(model,opt,cfg)
+trainer = Trainer(model, opt, cfg)
 
-pred=trainer.train(z,corrupted,mask)
+pred = trainer.train(z, corrupted, mask)
 
-restored=corrupted + pred*(1-mask)
+restored = corrupted + pred * (1 - mask)
 
 show_results(
     clean.squeeze().cpu(),
