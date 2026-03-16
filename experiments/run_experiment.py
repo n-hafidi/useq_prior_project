@@ -13,7 +13,7 @@ from skimage import data, color, transform
 
 from models.useq_prior_v2 import USeqPriorV2
 from training.trainer import Trainer
-from data.corruptions import random_mask, hole_mask, text_mask
+from data.corruptions import random_mask, hole_mask, text_mask, text_words_mask
 
 import matplotlib.pyplot as plt
 
@@ -33,10 +33,11 @@ parser.add_argument("--image", type=str, default="camera",
 parser.add_argument("--size", type=int, default=256)
 
 parser.add_argument("--corruption", type=str, default="text",
-                    choices=["text", "random", "hole"])
+                    choices=["text", "random", "hole", "words"])
 
 parser.add_argument("--num_lines", type=int, default=3)
 parser.add_argument("--thickness", type=int, default=10)
+parser.add_argument("--num_words", type=int, default=5)
 parser.add_argument("--missing_rate", type=float, default=0.4)
 parser.add_argument("--hole_size", type=int, default=80)
 
@@ -94,6 +95,10 @@ elif args.corruption == "random":
 elif args.corruption == "text":
 
     mask = text_mask(clean, args.num_lines, args.thickness)
+    
+elif args.corruption == "words":
+
+    mask = text_words_mask(clean, args.num_words, args.thickness)
 
 else:
     raise ValueError("Unknown corruption")
@@ -164,6 +169,9 @@ elif args.corruption == "random":
 
 elif args.corruption == "hole":
     exp_name = f"{args.image}_hole_size{args.hole_size}_{args.size}_{args.iters}"
+    
+elif args.corruption == "words":
+    exp_name = f"{args.image}_words_{args.num_words}_{args.size}_{args.iters}"
 
 else:
     exp_name = f"{args.image}_unknown"
